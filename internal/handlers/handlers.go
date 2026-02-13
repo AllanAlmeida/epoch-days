@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"math"
@@ -11,6 +12,9 @@ import (
 )
 
 const secondsPerDay int64 = 24 * 60 * 60
+
+//go:embed swagger.json
+var swaggerSpec []byte
 
 type EpochHandler struct {
 	now func() time.Time
@@ -35,7 +39,17 @@ func NewEpochHandler(now func() time.Time) *EpochHandler {
 }
 
 func (h *EpochHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /epoch/swagger", h.GetSwagger)
 	mux.HandleFunc("GET /epoch/{days}", h.GetEpoch)
+}
+
+func (h *EpochHandler) GetSwagger(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(swaggerSpec); err != nil {
+		http.Error(w, `{"error":"failed to write response"}`, http.StatusInternalServerError)
+	}
 }
 
 func (h *EpochHandler) GetEpoch(w http.ResponseWriter, r *http.Request) {

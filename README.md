@@ -8,7 +8,8 @@ API REST em Go para calcular epoch atual e epoch futuro com base em uma quantida
 .
 ├── api
 │   ├── integration_test.go
-│   └── openapi.yaml
+│   ├── openapi.yaml
+│   └── swagger.yaml
 ├── cmd
 │   └── app
 │       └── main.go
@@ -46,6 +47,13 @@ Se `days` não for inteiro, retorna `400`:
   "error": "invalid days: must be an integer"
 }
 ```
+
+## Swagger (OpenAPI)
+
+- Especificação principal: `api/swagger.yaml`
+- Versão JSON: `api/swagger.json`
+- Especificação inicial mantida: `api/openapi.yaml`
+- Endpoint da especificação em runtime: `GET /epoch/swagger`
 
 ## Como rodar localmente (Go)
 

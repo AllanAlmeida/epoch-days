@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -99,5 +100,29 @@ func TestGetEpochContextCanceled(t *testing.T) {
 
 	if resp.Error != "request context canceled" {
 		t.Fatalf("expected cancellation error message, got %q", resp.Error)
+	}
+}
+
+func TestGetSwaggerSuccess(t *testing.T) {
+	h := NewEpochHandler(func() time.Time { return time.Unix(0, 0).UTC() })
+
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/epoch/swagger", nil)
+	rr := httptest.NewRecorder()
+
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+
+	if got := rr.Header().Get("Content-Type"); got != "application/json" {
+		t.Fatalf("expected Content-Type application/json, got %q", got)
+	}
+
+	if !strings.Contains(rr.Body.String(), "\"openapi\"") {
+		t.Fatalf("expected swagger payload to contain openapi field")
 	}
 }

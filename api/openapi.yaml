@@ -1,0 +1,39 @@
+openapi: 3.0.3
+info:
+  title: Epoch Days API
+  version: 1.0.0
+paths:
+  /epoch/{days}:
+    get:
+      summary: Calculate current epoch and future epoch after adding days
+      parameters:
+        - name: days
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  now_epoch:
+                    type: integer
+                    format: int64
+                  future_epoch:
+                    type: integer
+                    format: int64
+                  days_added:
+                    type: integer
+        '400':
+          description: Invalid days parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string

@@ -7,7 +7,7 @@ COPY go.mod ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/app .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/app ./cmd/app
 
 FROM alpine:3.21
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

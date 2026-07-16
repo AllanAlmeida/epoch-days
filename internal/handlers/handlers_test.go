@@ -109,7 +109,7 @@ func TestGetSwaggerSuccess(t *testing.T) {
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	req := httptest.NewRequest(http.MethodGet, "/epoch/swagger", nil)
+	req := httptest.NewRequest(http.MethodGet, "/swagger", nil)
 	rr := httptest.NewRecorder()
 
 	mux.ServeHTTP(rr, req)
@@ -122,7 +122,78 @@ func TestGetSwaggerSuccess(t *testing.T) {
 		t.Fatalf("expected Content-Type application/json, got %q", got)
 	}
 
-	if !strings.Contains(rr.Body.String(), "\"openapi\"") {
+	if !strings.Contains(rr.Body.String(), `"openapi"`) {
 		t.Fatalf("expected swagger payload to contain openapi field")
+	}
+}
+
+func TestGetHealth(t *testing.T) {
+	h := NewEpochHandler(func() time.Time { return time.Unix(0, 0).UTC() })
+
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rr := httptest.NewRecorder()
+
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+
+	var body map[string]string
+	if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode health response: %v", err)
+	}
+
+	if body["status"] != "ok" {
+		t.Fatalf("expected status ok, got %q", body["status"])
+	}
+}
+
+func TestLoggingMiddleware(t *testing.T) {
+	h := NewEpochHandler(func() time.Time { return time.Unix(0, 0).UTC() })
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	handler := LoggingMiddleware(mux)
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+}
+
+func TestCORSMiddleware(t *testing.T) {
+	h := NewEpochHandler(func() time.Time { return time.Unix(0, 0).UTC() })
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	handler := CORSMiddleware(mux)
+
+	// Testa preflight
+	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("expected preflight status %d, got %d", http.StatusNoContent, rr.Code)
+	}
+
+	if got := rr.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+		t.Fatalf("expected CORS origin *, got %q", got)
+	}
+
+	// Testa GET normal
+	req2 := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rr2 := httptest.NewRecorder()
+	handler.ServeHTTP(rr2, req2)
+
+	if rr2.Code != http.StatusOK {
+		t.Fatalf("expected GET status %d, got %d", http.StatusOK, rr2.Code)
 	}
 }

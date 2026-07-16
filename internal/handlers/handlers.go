@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -34,22 +35,25 @@ func NewEpochHandler(now func() time.Time) *EpochHandler {
 	if now == nil {
 		now = time.Now
 	}
-
 	return &EpochHandler{now: now}
 }
 
 func (h *EpochHandler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /epoch/swagger", h.GetSwagger)
+	mux.HandleFunc("GET /swagger", h.GetSwagger)
+	mux.HandleFunc("GET /health", h.GetHealth)
 	mux.HandleFunc("GET /epoch/{days}", h.GetEpoch)
 }
 
 func (h *EpochHandler) GetSwagger(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
 	if _, err := w.Write(swaggerSpec); err != nil {
 		http.Error(w, `{"error":"failed to write response"}`, http.StatusInternalServerError)
 	}
+}
+
+func (h *EpochHandler) GetHealth(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (h *EpochHandler) GetEpoch(w http.ResponseWriter, r *http.Request) {
@@ -115,8 +119,41 @@ func daysToSeconds(days int) (int64, error) {
 func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-
 	if err := json.NewEncoder(w).Encode(body); err != nil {
 		http.Error(w, `{"error":"failed to write response"}`, http.StatusInternalServerError)
 	}
+}
+
+// Middleware
+
+func LoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		lrw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		next.ServeHTTP(lrw, r)
+		log.Printf("%s %s %d %s", r.Method, r.URL.Path, lrw.statusCode, time.Since(start))
+	})
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(code int) {
+	lrw.statusCode = code
+	lrw.ResponseWriter.WriteHeader(code)
+}
+
+func CORSMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

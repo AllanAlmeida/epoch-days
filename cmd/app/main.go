@@ -27,9 +27,14 @@ func main() {
 	epochHandler := handlers.NewEpochHandler(time.Now)
 	epochHandler.RegisterRoutes(mux)
 
+	// Aplica middlewares
+	var h http.Handler = mux
+	h = handlers.LoggingMiddleware(h)
+	h = handlers.CORSMiddleware(h)
+
 	server := &http.Server{
 		Addr:              port,
-		Handler:           mux,
+		Handler:           h,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,

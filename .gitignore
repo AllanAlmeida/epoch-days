@@ -1,2 +1,40 @@
-# Binário compilado (mantido no servidor para o systemd, não versionado)
+# Go binaries/build outputs
+bin/
+dist/
+build/
+/app
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test / coverage
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Go workspace/cache (local)
+.cache/
+
+# Logs
+*.log
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# IDE/editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Binário compilado usado pelo systemd
 epoch-days-server

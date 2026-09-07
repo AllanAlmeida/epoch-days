@@ -15,6 +15,7 @@ import (
 )
 
 func main() {
+	host := strings.TrimSpace(os.Getenv("HOST"))
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
 		port = "8080"
@@ -22,6 +23,7 @@ func main() {
 	if !strings.HasPrefix(port, ":") {
 		port = ":" + port
 	}
+	addr := host + port
 
 	mux := http.NewServeMux()
 	epochHandler := handlers.NewEpochHandler(time.Now)
@@ -33,7 +35,7 @@ func main() {
 	h = handlers.CORSMiddleware(h)
 
 	server := &http.Server{
-		Addr:              port,
+		Addr:              addr,
 		Handler:           h,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
